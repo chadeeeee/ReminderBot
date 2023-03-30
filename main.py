@@ -10,7 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import config
 from aux_types import BotContext
 from handlers.personal_actions import start, help, info, donate, version, code
-from handlers.reminder import set_date, set_text, States, start
+from handlers.reminder import set_date, set_text, States
 
 
 async def on_startup(dp: Dispatcher, bot_context: BotContext):
