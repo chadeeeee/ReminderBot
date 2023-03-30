@@ -9,7 +9,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import config
 from aux_types import BotContext
-from handlers.personal_actions import start, help, info, donate, version, code
+from handlers.personal_actions import start, help, donate, version, code, instruction, support # info 
 from handlers.reminder import set_date, set_text, States
 
 
@@ -37,7 +37,8 @@ def main():
 
         dp.register_message_handler(start, commands=['start'])
         dp.register_message_handler(help, commands=['help'])
-        dp.register_message_handler(info, commands=['info'])
+        dp.register_message_handler(instruction, commands=['instruction'])
+        dp.register_message_handler(support, commands=['support'])
         dp.register_message_handler(version, commands=['version'])
         dp.register_message_handler(donate, commands=['donate'])
         dp.register_message_handler(code, commands=['code'])

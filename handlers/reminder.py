@@ -15,8 +15,9 @@ class States(StatesGroup):
     DATE = State()
 
 
-async def start(message: types.Message, bot_context: BotContext, user_id: int):
+async def start(message: types.Message, bot_context: BotContext):
     await States.TEXT.set()
+
 
 async def set_text(message: types.Message,
                    state: FSMContext,
