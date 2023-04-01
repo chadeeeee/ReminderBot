@@ -35,8 +35,8 @@ async def set_date(message: types.Message, state: FSMContext, bot_context: BotCo
             date = datetime.strptime(message.text, '%Y-%m-%d %H:%M')
             text = data['text']
             with closing(bot_context.connection.cursor()) as cursor:
-                cursor.execute('INSERT INTO reminder (text, date) VALUES (?, ?)',
-                               (text, date))
+                cursor.execute('INSERT INTO reminder (user_id, text, date) VALUES (?, ?, ?)',
+                               (message.from_user.id, text, date))
                 job_id = cursor.lastrowid
                 bot_context.connection.commit()
                 logging.debug(f'{job_id=} {date=!s} "{text}"')
@@ -57,9 +57,9 @@ async def set_date(message: types.Message, state: FSMContext, bot_context: BotCo
 
 async def send_message_to_admin(job_id: int, bot_context: BotContext):
     with closing(bot_context.connection.cursor()) as cursor:
-        r = cursor.execute("SELECT text, date FROM reminder WHERE id=?", (job_id,))
+        r = cursor.execute("SELECT user_id, text, date FROM reminder WHERE id=?", (job_id,))
         data = r.fetchone()
-        text, date = data
+        user_id, text, date = data
         logging.debug(f'Job finished {job_id=} {date=!s} {text=}')
 
-        await bot_context.bot.send_message(bot_context.admin_id, text)
+        await bot_context.bot.send_message(user_id, text)
