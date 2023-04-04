@@ -24,7 +24,6 @@ async def set_text(message: types.Message,
                    bot_context: BotContext):
     async with state.proxy() as data:
         data['text'] = message.text.strip()
-        data['photo'] = message.photo[0].file_id
         if data['text']:
             await message.answer('Вкажіть дату і час нагадування в форматі "YYYY-MM-DD HH:MM"')
             await States.DATE.set()
@@ -35,10 +34,9 @@ async def set_date(message: types.Message, state: FSMContext, bot_context: BotCo
         try:
             date = datetime.strptime(message.text, '%Y-%m-%d %H:%M')
             text = data['text']
-            img = data['photo']
             with closing(bot_context.connection.cursor()) as cursor:
-                cursor.execute('INSERT INTO reminder (user_id, text, date, img) VALUES (?, ?, ?)',
-                               (message.from_user.id, text, date, img))
+                cursor.execute('INSERT INTO reminder (user_id, text, date) VALUES (?, ?, ?)',
+                               (message.from_user.id, text, date))
                 job_id = cursor.lastrowid
                 bot_context.connection.commit()
                 logging.debug(f'{job_id=} {date=!s} "{text}"')
@@ -59,9 +57,9 @@ async def set_date(message: types.Message, state: FSMContext, bot_context: BotCo
 
 async def send_message_to_admin(job_id: int, bot_context: BotContext):
     with closing(bot_context.connection.cursor()) as cursor:
-        r = cursor.execute("SELECT user_id, text, date, img FROM reminder WHERE id=?", (job_id,))
+        r = cursor.execute("SELECT user_id, text, date FROM reminder WHERE id=?", (job_id,))
         data = r.fetchone()
-        user_id, text, date, img = data
+        user_id, text, date = data
         logging.debug(f'Job finished {job_id=} {date=!s} {text=}')
 
         await bot_context.bot.send_message(user_id, text)
