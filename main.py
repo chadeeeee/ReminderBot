@@ -1,15 +1,17 @@
-import logging 
+import logging
+import os.path
 import sqlite3
+from contextlib import closing
 from datetime import datetime
 from functools import partial
 
 import tzlocal
-from aiogram import executor, Dispatcher, Bot
+from aiogram import executor, Dispatcher, Bot, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import config
-from aux_types import BotContext
-from handlers.personal_actions import start, help, donate, version, code, instruction, support # info 
+from handlers.aux_types import BotContext
+from handlers.personal_actions import start, help, donate, version, code, instruction, support  # info
 from handlers.reminder import set_date, set_text, States
 
 
@@ -27,8 +29,16 @@ def main():
         logging.getLogger(logger_name).setLevel(level=logging.WARNING)
 
     with sqlite3.connect("reminder.db") as connection:
-        scheduler = AsyncIOScheduler(timezone=str(tzlocal.get_localzone()))
+        with closing(connection.cursor()) as cursor:
+            cursor.execute("""CREATE TABLE IF NOT EXISTS reminder(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    text TEXT,
+                    photo_id TEXT,
+                    date DATETIME
+                );""")
 
+        scheduler = AsyncIOScheduler(timezone=str(tzlocal.get_localzone()))
         bot = Bot(token=config.BOT_TOKEN, parse_mode="HTML")
         storage = MemoryStorage()
         dp = Dispatcher(bot, storage=storage)
@@ -43,10 +53,22 @@ def main():
         dp.register_message_handler(donate, commands=['donate'])
         dp.register_message_handler(code, commands=['code'])
 
-        dp.register_message_handler(partial(set_text, bot_context=bot_context), state=States.TEXT)
-        dp.register_message_handler(partial(set_text, bot_context=bot_context), state=None)
-        dp.register_message_handler(partial(set_date, bot_context=bot_context), state=States.DATE)
+        dp.register_message_handler(
+            partial(set_text, bot_context=bot_context),
+            state=States.TEXT,
+            content_types=types.ContentTypes.PHOTO | types.ContentTypes.TEXT
+        )
 
+        dp.register_message_handler(
+            partial(set_text, bot_context=bot_context),
+            state=None,
+            content_types=types.ContentTypes.PHOTO | types.ContentTypes.TEXT
+        )
+
+        dp.register_message_handler(
+            partial(set_date, bot_context=bot_context),
+            state=States.DATE
+        )
         executor.start_polling(dp,
                                skip_updates=True,
                                on_startup=partial(on_startup, bot_context=bot_context))
